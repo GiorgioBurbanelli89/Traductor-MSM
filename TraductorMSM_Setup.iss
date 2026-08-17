@@ -2,7 +2,7 @@
 ; Generado para Inno Setup 6
 
 #define MyAppName "Traductor MSM"
-#define MyAppVersion "1.5.0"
+#define MyAppVersion "1.6.0"
 #define MyAppPublisher "MSM"
 #define MyAppExeName "Traductor MSM.exe"
 #define MyAppAssocName MyAppName + " File"

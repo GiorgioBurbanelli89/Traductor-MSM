@@ -28,6 +28,8 @@ namespace Traductor
         private string _lastClipboardText = "";
         private string _lastSelectedText = "";
         private bool _isMonitoringClipboard = false;
+        private bool _ingesting = false;   // true mientras IngestSelection pone el texto (evita doble traducción/voz)
+        private string _lastSpoken = "";   // último texto pronunciado (para verificar por --ctl)
         private DispatcherTimer? _clipboardTimer;
 
         // Floating button for text selection
@@ -155,11 +157,14 @@ namespace Traductor
                 case "selection":   // simula texto seleccionado en otra app (LinkedIn/Telegram)
                 {
                     _isMonitoringClipboard = true;   // como si el Monitor estuviera ON
+                    _lastSpoken = "";
                     IngestSelection(doc.RootElement.GetProperty("text").GetString());
-                    await Task.Delay(1500);          // deja que traduzca (y hable)
+                    await Task.Delay(1500);          // deja que traduzca
                     return System.Text.Json.JsonSerializer.Serialize(new
                     { source = txtSource.Text, result = txtResult.Text });
                 }
+                case "spoken":   // último texto pronunciado (para verificar el audio de la selección)
+                    return System.Text.Json.JsonSerializer.Serialize(new { spoken = _lastSpoken });
                 case "uilang":   // cambia el idioma de la INTERFAZ (es/en)
                     cmbUiLang.SelectedIndex = doc.RootElement.GetProperty("code").GetString() == "en" ? 1 : 0;
                     return "{\"ok\":true}";
@@ -375,18 +380,21 @@ namespace Traductor
                 _lastIngested = text;
                 _lastClipboardText = text;   // evita que el timer del portapapeles lo repita
 
-                if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
-                txtSource.Text = text;
-                placeholderSource.Visibility = Visibility.Collapsed;
-                txtStatus.Text = Loc.L("captured");
+                _ingesting = true;           // TextChanged NO auto-traducirá (evita doble traducción/voz)
+                try
+                {
+                    if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                    txtSource.Text = text;
+                    placeholderSource.Visibility = Visibility.Collapsed;
+                    txtStatus.Text = Loc.L("captured");
 
-                await TranslateTextAsync();   // usa el idioma DESTINO del combo (parte textos largos solo)
+                    await TranslateTextAsync();   // UNA sola traducción (al idioma destino: Español por defecto)
 
-                // Monitor ON siempre pronuncia el resultado (aunque Auto-voz este apagado).
-                // Si Auto-voz esta ON, TranslateTextAsync ya lo dijo -> no repetir.
-                if (_isMonitoringClipboard && chkAutoVoice.IsChecked != true
-                    && !string.IsNullOrWhiteSpace(txtResult.Text))
-                    await SpeakAsync(txtResult.Text, tgt);
+                    // Monitor ON = responde en AUDIO por defecto (habla la traducción, una sola vez).
+                    if (!string.IsNullOrWhiteSpace(txtResult.Text))
+                        await SpeakAsync(txtResult.Text, tgt);
+                }
+                finally { _ingesting = false; }
             });
         }
 
@@ -713,8 +721,9 @@ namespace Traductor
 
                 txtStatus.Text = $"{Loc.L("translatedOk")}{detectedLang}  ·  Match: {result.MatchPercentage}%";
 
-                // Auto-voz: pronunciar la traduccion para practicar mientras escribes.
-                if (chkAutoVoice.IsChecked == true && !string.IsNullOrWhiteSpace(result.TranslatedText))
+                // Auto-voz: pronunciar la traduccion al escribir/traducir. Durante una selección
+                // (_ingesting) NO habla aquí: IngestSelection ya pronuncia una vez (evita doble).
+                if (chkAutoVoice.IsChecked == true && !_ingesting && !string.IsNullOrWhiteSpace(result.TranslatedText))
                     _ = SpeakAsync(result.TranslatedText, targetLang);
             }
             catch (Exception ex)
@@ -821,6 +830,7 @@ namespace Traductor
                 var gender = (cmbVoice?.SelectedIndex == 1) ? "hombre" : "mujer";
                 var files = await Services.TtsService.SynthesizeAsync(text, lang, gender);
                 if (files.Count == 0) return;
+                _lastSpoken = text;   // para verificar por --ctl que sí pronunció
                 if (_ttsPlayer == null)
                 {
                     _ttsPlayer = new System.Windows.Media.MediaPlayer();
@@ -878,6 +888,10 @@ namespace Traductor
         private async void TxtSource_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             UpdatePlaceholder();
+
+            // Si el texto lo puso IngestSelection (selección con Monitor), NO auto-traducir aquí:
+            // IngestSelection ya traduce y pronuncia una sola vez (evita que se pisen dos voces).
+            if (_ingesting) return;
 
             // Auto-traducir si esta activado
             if (chkAutoTranslate.IsChecked == true && !string.IsNullOrWhiteSpace(txtSource.Text))
