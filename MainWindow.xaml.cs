@@ -597,6 +597,10 @@ namespace Traductor
             {
                 txtStatus.Text = Loc.L("hotkeyErr");
             }
+
+            // Monitor ENCENDIDO por defecto: al seleccionar cualquier texto, lo traduce y lo LEE.
+            // (Se hace aquí, en Loaded, cuando el timer y el mouse hook ya están listos.)
+            btnMonitor.IsChecked = true;
         }
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)

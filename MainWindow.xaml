@@ -245,7 +245,7 @@
                       ToolTip="Traducir automaticamente al escribir"/>
             <CheckBox x:Name="chkAutoVoice" Content="🔊 Auto-voz"
                       Foreground="#FFFFFF" FontSize="11" VerticalAlignment="Center"
-                      Margin="10,0,0,0"
+                      IsChecked="True" Margin="10,0,0,0"
                       ToolTip="Pronuncia la traduccion automaticamente al traducir (para practicar mientras escribes)"/>
         </StackPanel>
 
