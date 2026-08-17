@@ -831,12 +831,11 @@ namespace Traductor
         {
             if (string.IsNullOrWhiteSpace(text)) return;
 
-            // ⚡ RÁPIDA: voz de Windows, suena al instante (sin internet, sin Python).
+            // ⚡ RÁPIDA: voz de Windows (instantánea) si hay del idioma; si no, cae a NEURAL.
             if (chkFast?.IsChecked == true)
             {
-                SpeakWindows(text, lang, cmbVoice?.SelectedIndex == 1);
-                _lastSpoken = text;
-                return;
+                if (SpeakWindows(text, lang, cmbVoice?.SelectedIndex == 1)) { _lastSpoken = text; return; }
+                // no hay voz rápida de ese idioma (ej. alemán) -> sigue a la neural (edge-tts)
             }
 
             try
@@ -870,10 +869,10 @@ namespace Traductor
             catch { }
         }
 
-        // ⚡ Voz de Windows (SAPI): offline e instantánea. Elige la voz instalada del idioma
-        // (es/en/...) y género; si no hay de ese idioma, usa la voz por defecto de Windows.
+        // ⚡ Voz de Windows (SAPI): offline e instantánea. Devuelve TRUE si habló; FALSE si NO
+        // hay voz de Windows para ese idioma (entonces el llamador cae a la voz neural).
         private System.Speech.Synthesis.SpeechSynthesizer _sapi;
-        private void SpeakWindows(string text, string lang, bool male)
+        private bool SpeakWindows(string text, string lang, bool male)
         {
             try
             {
@@ -882,19 +881,21 @@ namespace Traductor
                     _sapi = new System.Speech.Synthesis.SpeechSynthesizer();
                     _sapi.SetOutputToDefaultAudioDevice();
                 }
-                _sapi.SpeakAsyncCancelAll();   // corta lo anterior -> una sola voz
                 var pref = (lang ?? "es").Split('-')[0].ToLowerInvariant();
                 var voices = System.Linq.Enumerable.ToList(
                     System.Linq.Enumerable.Where(_sapi.GetInstalledVoices(),
                         v => v.Enabled && v.VoiceInfo.Culture.TwoLetterISOLanguageName == pref));
+                if (voices.Count == 0) return false;   // no hay voz rápida de ese idioma -> usar neural
                 var wanted = male ? System.Speech.Synthesis.VoiceGender.Male
                                   : System.Speech.Synthesis.VoiceGender.Female;
                 var chosen = System.Linq.Enumerable.FirstOrDefault(voices, v => v.VoiceInfo.Gender == wanted)
-                          ?? System.Linq.Enumerable.FirstOrDefault(voices);
-                if (chosen != null) _sapi.SelectVoice(chosen.VoiceInfo.Name);
+                          ?? voices[0];
+                _sapi.SpeakAsyncCancelAll();           // corta lo anterior -> una sola voz
+                _sapi.SelectVoice(chosen.VoiceInfo.Name);
                 _sapi.SpeakAsync(text);
+                return true;
             }
-            catch (Exception ex) { txtStatus.Text = Loc.L("noAudio") + ex.Message; }
+            catch { return false; }
         }
 
         private void BtnMonitor_Click(object sender, RoutedEventArgs e)
