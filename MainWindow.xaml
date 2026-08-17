@@ -1,0 +1,287 @@
+<Window x:Class="Traductor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Traductor - Ctrl+Shift+T para traducir"
+        Height="500" Width="700"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E1E"
+        Topmost="True"
+        ResizeMode="CanResizeWithGrip">
+
+    <Window.Resources>
+        <!-- ComboBox Toggle Button -->
+        <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="20"/>
+                </Grid.ColumnDefinitions>
+                <Border x:Name="Border" Grid.ColumnSpan="2" Background="#3E3E42" BorderBrush="#555555" BorderThickness="1" CornerRadius="4"/>
+                <Path x:Name="Arrow" Grid.Column="1" Fill="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Data="M 0 0 L 4 4 L 8 0 Z"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Border" Property="Background" Value="#505050"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- ComboBox Style -->
+        <Style x:Key="DarkComboBox" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#3E3E42"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton" Template="{StaticResource ComboBoxToggleButton}"
+                                          Focusable="False" IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"/>
+                            <ContentPresenter Name="ContentSite" IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="10,3,23,3" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Grid Name="DropDown" SnapsToDevicePixels="True"
+                                      MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border x:Name="DropDownBorder" Background="#2D2D30" BorderBrush="#555555" BorderThickness="1" CornerRadius="4"/>
+                                    <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBoxItem Style -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Border" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#0078D4"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#0078D4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#3F3F46"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="CaretBrush" Value="#FFFFFF"/>
+        </Style>
+
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1084D9"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#006CBD"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SwapButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="#3E3E42"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#505054"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header con selectores de idioma -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock x:Name="lblSource" Text="Idioma origen" Foreground="#9E9E9E" FontSize="11" Margin="0,0,0,5"/>
+                <ComboBox x:Name="cmbSourceLang" Style="{StaticResource DarkComboBox}" Height="36"
+                          SelectionChanged="OnLanguageChanged"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" x:Name="btnSwap" Content="⇄"
+                    Style="{StaticResource SwapButton}"
+                    FontSize="18" Margin="15,15,15,0" Width="50" Height="36"
+                    Click="BtnSwap_Click" ToolTip="Intercambiar idiomas"/>
+
+            <StackPanel Grid.Column="2">
+                <TextBlock x:Name="lblTarget" Text="Idioma destino" Foreground="#9E9E9E" FontSize="11" Margin="0,0,0,5"/>
+                <ComboBox x:Name="cmbTargetLang" Style="{StaticResource DarkComboBox}" Height="36"
+                          SelectionChanged="OnLanguageChanged"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Texto origen -->
+        <Grid Grid.Row="1">
+            <TextBox x:Name="txtSource"
+                     Style="{StaticResource ModernTextBox}"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     VerticalScrollBarVisibility="Auto"
+                     TextChanged="TxtSource_TextChanged"/>
+            <TextBlock x:Name="placeholderSource"
+                       Text="Escribe o pega el texto a traducir..."
+                       Foreground="#6E6E6E"
+                       IsHitTestVisible="False"
+                       Margin="12,12,0,0"
+                       FontSize="14"
+                       Visibility="Visible"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
+                <TextBlock x:Name="txtCharCount" Text="0" Foreground="#6E6E6E" FontSize="11"/>
+                <TextBlock x:Name="lblChars" Text=" caracteres" Foreground="#6E6E6E" FontSize="11"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Botones de accion -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
+            <ToggleButton x:Name="btnMonitor" Content="🔴 MONITOR OFF"
+                          Checked="BtnMonitor_Click" Unchecked="BtnMonitor_Click" Width="130"
+                          Background="#3E3E42" Foreground="#FFFFFF" BorderThickness="0"
+                          Padding="10,6" FontSize="11" FontWeight="Bold" Cursor="Hand"
+                          ToolTip="Activa para traducir automaticamente al copiar texto en otro idioma">
+                <ToggleButton.Template>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#107C10"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#505054"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </ToggleButton.Template>
+            </ToggleButton>
+            <Button x:Name="btnQuickTranslate" Content="📋 Portapapeles"
+                    Style="{StaticResource ModernButton}"
+                    Click="BtnQuickTranslate_Click" Width="110" Margin="10,0,0,0"
+                    ToolTip="Traduce el texto del portapapeles (Ctrl+Shift+T)"/>
+            <Button x:Name="btnTranslate" Content="Traducir"
+                    Style="{StaticResource SwapButton}"
+                    Click="BtnTranslate_Click" Width="70" Margin="10,0,0,0"/>
+            <Button x:Name="btnClear" Content="Limpiar"
+                    Style="{StaticResource SwapButton}"
+                    Click="BtnClear_Click" Width="60" Margin="10,0,0,0"/>
+            <Button x:Name="btnCopyResult" Content="Copiar"
+                    Style="{StaticResource SwapButton}"
+                    Click="BtnCopyResult_Click" Width="60" Margin="10,0,0,0"/>
+            <Button x:Name="btnSpeak" Content="🔊 Escuchar"
+                    Style="{StaticResource SwapButton}"
+                    Click="BtnSpeak_Click" Width="90" Margin="10,0,0,0"
+                    ToolTip="Pronuncia la traduccion (voz neural, para aprender)"/>
+            <ComboBox x:Name="cmbVoice" Width="90" Margin="8,0,0,0" VerticalAlignment="Center"
+                      SelectedIndex="1"
+                      ToolTip="Voz de la pronunciación (neural, Microsoft Edge)">
+                <ComboBoxItem Content="👩 Mujer"/>
+                <ComboBoxItem Content="👨 Hombre"/>
+            </ComboBox>
+            <CheckBox x:Name="chkAutoTranslate" Content="Auto"
+                      Foreground="#FFFFFF" FontSize="11" VerticalAlignment="Center"
+                      IsChecked="True" Margin="10,0,0,0"
+                      ToolTip="Traducir automaticamente al escribir"/>
+            <CheckBox x:Name="chkAutoVoice" Content="🔊 Auto-voz"
+                      Foreground="#FFFFFF" FontSize="11" VerticalAlignment="Center"
+                      Margin="10,0,0,0"
+                      ToolTip="Pronuncia la traduccion automaticamente al traducir (para practicar mientras escribes)"/>
+        </StackPanel>
+
+        <!-- Texto resultado -->
+        <Grid Grid.Row="3">
+            <TextBox x:Name="txtResult"
+                     Style="{StaticResource ModernTextBox}"
+                     TextWrapping="Wrap"
+                     IsReadOnly="True"
+                     VerticalScrollBarVisibility="Auto"/>
+            <TextBlock x:Name="placeholderResult"
+                       Text="La traduccion aparecera aqui..."
+                       Foreground="#6E6E6E"
+                       IsHitTestVisible="False"
+                       Margin="12,12,0,0"
+                       FontSize="14"
+                       Visibility="Visible"/>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="4" Background="#252526" CornerRadius="4" Margin="0,10,0,0" Padding="10,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="txtStatus" Text="Listo. Presiona Ctrl+Shift+T para traducir texto seleccionado."
+                           Foreground="#9E9E9E" FontSize="11" VerticalAlignment="Center"/>
+                <ComboBox Grid.Column="1" x:Name="cmbUiLang" Width="80" Height="26"
+                          SelectedIndex="0" SelectionChanged="OnUiLangChanged"
+                          Style="{StaticResource DarkComboBox}"
+                          ToolTip="Idioma de la interfaz / Interface language">
+                    <ComboBoxItem Content="🌐 ES"/>
+                    <ComboBoxItem Content="🌐 EN"/>
+                </ComboBox>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

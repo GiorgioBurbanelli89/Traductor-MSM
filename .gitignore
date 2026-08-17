@@ -1,0 +1,11 @@
+# .NET build output
+bin/
+obj/
+*.user
+
+# Installer output (se publica como Release, no en el repo)
+Installer/
+
+# Temp
+tmpclaude-*
+*.tmp

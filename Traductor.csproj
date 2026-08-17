@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Traductor MSM</AssemblyName>
+    <RootNamespace>Traductor</RootNamespace>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.2.0</Version>
+    <Company>MSM</Company>
+    <Product>Traductor MSM</Product>
+    <Description>Traductor instant\u00e1neo con monitor de portapapeles</Description>
+    <Copyright>Copyright \u00a9 2025 MSM</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>

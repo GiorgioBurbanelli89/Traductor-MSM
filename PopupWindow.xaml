@@ -1,0 +1,78 @@
+<Window x:Class="Traductor.PopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title=""
+        SizeToContent="WidthAndHeight"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Deactivated="Window_Deactivated">
+
+    <Border Background="#2D2D30" CornerRadius="8" BorderBrush="#0078D4" BorderThickness="2" Padding="8">
+        <StackPanel>
+            <!-- Texto seleccionado (preview) -->
+            <TextBlock x:Name="txtPreview"
+                       Text="Texto seleccionado..."
+                       Foreground="#CCCCCC"
+                       FontSize="12"
+                       MaxWidth="300"
+                       TextTrimming="CharacterEllipsis"
+                       Margin="0,0,0,8"/>
+
+            <!-- Botones de idioma destino -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="btnToSpanish" Content="ES"
+                        Width="40" Height="32" Margin="2"
+                        Click="BtnTranslate_Click" Tag="es"
+                        Style="{StaticResource PopupButton}"
+                        ToolTip="Traducir a Espanol"/>
+                <Button x:Name="btnToEnglish" Content="EN"
+                        Width="40" Height="32" Margin="2"
+                        Click="BtnTranslate_Click" Tag="en"
+                        Style="{StaticResource PopupButton}"
+                        ToolTip="Traducir a English"/>
+                <Button x:Name="btnToRussian" Content="RU"
+                        Width="40" Height="32" Margin="2"
+                        Click="BtnTranslate_Click" Tag="ru"
+                        Style="{StaticResource PopupButton}"
+                        ToolTip="Traducir a Ruso"/>
+                <Button x:Name="btnToPortuguese" Content="PT"
+                        Width="40" Height="32" Margin="2"
+                        Click="BtnTranslate_Click" Tag="pt"
+                        Style="{StaticResource PopupButton}"
+                        ToolTip="Traducir a Portugues"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+
+    <Window.Resources>
+        <Style x:Key="PopupButton" TargetType="Button">
+            <Setter Property="Background" Value="#3E3E42"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#0078D4"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#006CBD"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+</Window>

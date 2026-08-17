@@ -1,0 +1,186 @@
+<Window x:Class="Traductor.QuickPopup"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title=""
+        SizeToContent="WidthAndHeight"
+        MaxWidth="500"
+        MaxHeight="500"
+        MinWidth="350"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        MouseLeftButtonDown="Window_MouseDown"
+        KeyDown="Window_KeyDown"
+        Deactivated="Window_Deactivated">
+
+    <Border Background="#2D2D30" CornerRadius="8" BorderBrush="#0078D4" BorderThickness="2">
+        <Grid Margin="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Texto original (pequeno) -->
+            <TextBlock x:Name="txtOriginal"
+                       Grid.Row="0"
+                       Text=""
+                       Foreground="#888888"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       MaxHeight="60"
+                       Margin="0,0,0,8"/>
+
+            <!-- Selector de idioma destino -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8" HorizontalAlignment="Center">
+                <TextBlock Text="Traducir a:" Foreground="#999999" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <Button x:Name="btnLangES" Content="ES" Click="BtnLang_Click" Tag="es"
+                        Background="#0078D4" Foreground="White" BorderThickness="0"
+                        Padding="10,3" Margin="2,0" Cursor="Hand" FontSize="10" FontWeight="Bold">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button x:Name="btnLangEN" Content="EN" Click="BtnLang_Click" Tag="en"
+                        Background="#555555" Foreground="White" BorderThickness="0"
+                        Padding="10,3" Margin="2,0" Cursor="Hand" FontSize="10" FontWeight="Bold">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button x:Name="btnLangRU" Content="RU" Click="BtnLang_Click" Tag="ru"
+                        Background="#555555" Foreground="White" BorderThickness="0"
+                        Padding="10,3" Margin="2,0" Cursor="Hand" FontSize="10" FontWeight="Bold">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button x:Name="btnLangPT" Content="PT" Click="BtnLang_Click" Tag="pt"
+                        Background="#555555" Foreground="White" BorderThickness="0"
+                        Padding="10,3" Margin="2,0" Cursor="Hand" FontSize="10" FontWeight="Bold">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+
+            <!-- Traduccion (grande) -->
+            <TextBox x:Name="txtTranslation"
+                     Grid.Row="2"
+                     Text="Traduciendo..."
+                     Foreground="#FFFFFF"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     FontSize="14"
+                     TextWrapping="Wrap"
+                     IsReadOnly="True"
+                     MaxHeight="150"
+                     VerticalScrollBarVisibility="Auto"/>
+
+            <!-- Separador -->
+            <Border Grid.Row="3" Height="1" Background="#444444" Margin="0,10,0,10"/>
+
+            <!-- Campo para responder -->
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="txtReply"
+                         Grid.Column="0"
+                         Background="#3E3E42"
+                         Foreground="#FFFFFF"
+                         BorderThickness="1"
+                         BorderBrush="#555555"
+                         Padding="8,6"
+                         FontSize="13"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         MaxHeight="80"
+                         VerticalScrollBarVisibility="Auto"
+                         GotFocus="TxtReply_GotFocus"
+                         KeyDown="TxtReply_KeyDown"/>
+                <TextBlock x:Name="placeholderReply"
+                           Grid.Column="0"
+                           Text="Escribe tu respuesta en español..."
+                           Foreground="#6E6E6E"
+                           FontSize="13"
+                           Margin="10,8,0,0"
+                           IsHitTestVisible="False"/>
+
+                <Button x:Name="btnTranslateReply"
+                        Grid.Column="1"
+                        Content="→"
+                        Click="BtnTranslateReply_Click"
+                        Background="#107C10" Foreground="White" BorderThickness="0"
+                        Width="40" Margin="5,0,0,0"
+                        Cursor="Hand" FontSize="16" FontWeight="Bold"
+                        ToolTip="Traducir y copiar (Ctrl+Enter)">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- Respuesta traducida -->
+            <TextBox x:Name="txtReplyTranslated"
+                     Grid.Row="5"
+                     Foreground="#90EE90"
+                     Background="#1E1E1E"
+                     BorderThickness="1"
+                     BorderBrush="#107C10"
+                     Padding="8"
+                     FontSize="13"
+                     TextWrapping="Wrap"
+                     IsReadOnly="True"
+                     MaxHeight="100"
+                     Margin="0,8,0,0"
+                     Visibility="Collapsed"
+                     VerticalScrollBarVisibility="Auto"/>
+
+            <!-- Info y botones -->
+            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0" x:Name="pnlButtons">
+                <TextBlock x:Name="txtLangInfo" Text="" Foreground="#555555" FontSize="10" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button x:Name="btnCopy" Content="Copiar" Click="BtnCopy_Click"
+                        Background="#0078D4" Foreground="White" BorderThickness="0"
+                        Padding="12,4" Cursor="Hand" FontSize="11">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
