@@ -141,6 +141,7 @@ namespace Traductor
                         status = txtStatus.Text,
                         autoTranslate = chkAutoTranslate.IsChecked,
                         autoVoice = chkAutoVoice.IsChecked,
+                        fast = chkFast.IsChecked,
                         monitor = btnMonitor.IsChecked,
                         voice = cmbVoice.SelectedIndex,
                         srcLang = (cmbSourceLang.SelectedItem as LanguageItem)?.Code,
@@ -824,13 +825,23 @@ namespace Traductor
             await SpeakAsync(txtResult.Text, lang);
         }
 
-        /// <summary>Descarga y reproduce el audio de `text` en el idioma `lang` (voz nativa).</summary>
+        /// <summary>Pronuncia `text`. Motor RÁPIDO (voz de Windows, offline, instantáneo) si
+        /// «⚡ Rápida» está marcada; si no, voz NEURAL (edge-tts, natural, tarda unos segundos).</summary>
         private async System.Threading.Tasks.Task SpeakAsync(string text, string lang)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+
+            // ⚡ RÁPIDA: voz de Windows, suena al instante (sin internet, sin Python).
+            if (chkFast?.IsChecked == true)
+            {
+                SpeakWindows(text, lang, cmbVoice?.SelectedIndex == 1);
+                _lastSpoken = text;
+                return;
+            }
+
             try
             {
-                // voz elegida en el combo: 0 = Mujer, 1 = Hombre
+                // NEURAL: voz elegida en el combo: 0 = Mujer, 1 = Hombre
                 var gender = (cmbVoice?.SelectedIndex == 1) ? "hombre" : "mujer";
                 var files = await Services.TtsService.SynthesizeAsync(text, lang, gender);
                 if (files.Count == 0) return;
@@ -857,6 +868,33 @@ namespace Traductor
             var f = _ttsQueue.Dequeue();
             try { _ttsPlayer.Open(new Uri(f, UriKind.Absolute)); _ttsPlayer.Play(); }
             catch { }
+        }
+
+        // ⚡ Voz de Windows (SAPI): offline e instantánea. Elige la voz instalada del idioma
+        // (es/en/...) y género; si no hay de ese idioma, usa la voz por defecto de Windows.
+        private System.Speech.Synthesis.SpeechSynthesizer _sapi;
+        private void SpeakWindows(string text, string lang, bool male)
+        {
+            try
+            {
+                if (_sapi == null)
+                {
+                    _sapi = new System.Speech.Synthesis.SpeechSynthesizer();
+                    _sapi.SetOutputToDefaultAudioDevice();
+                }
+                _sapi.SpeakAsyncCancelAll();   // corta lo anterior -> una sola voz
+                var pref = (lang ?? "es").Split('-')[0].ToLowerInvariant();
+                var voices = System.Linq.Enumerable.ToList(
+                    System.Linq.Enumerable.Where(_sapi.GetInstalledVoices(),
+                        v => v.Enabled && v.VoiceInfo.Culture.TwoLetterISOLanguageName == pref));
+                var wanted = male ? System.Speech.Synthesis.VoiceGender.Male
+                                  : System.Speech.Synthesis.VoiceGender.Female;
+                var chosen = System.Linq.Enumerable.FirstOrDefault(voices, v => v.VoiceInfo.Gender == wanted)
+                          ?? System.Linq.Enumerable.FirstOrDefault(voices);
+                if (chosen != null) _sapi.SelectVoice(chosen.VoiceInfo.Name);
+                _sapi.SpeakAsync(text);
+            }
+            catch (Exception ex) { txtStatus.Text = Loc.L("noAudio") + ex.Message; }
         }
 
         private void BtnMonitor_Click(object sender, RoutedEventArgs e)

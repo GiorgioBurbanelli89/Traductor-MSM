@@ -247,6 +247,10 @@
                       Foreground="#FFFFFF" FontSize="11" VerticalAlignment="Center"
                       IsChecked="True" Margin="10,0,0,0"
                       ToolTip="Pronuncia la traduccion automaticamente al traducir (para practicar mientras escribes)"/>
+            <CheckBox x:Name="chkFast" Content="⚡ Rápida"
+                      Foreground="#FFFFFF" FontSize="11" VerticalAlignment="Center"
+                      IsChecked="True" Margin="10,0,0,0"
+                      ToolTip="Voz rápida de Windows (instantánea, offline). Desmárcala para la voz neural (más natural, tarda unos segundos)."/>
         </StackPanel>
 
         <!-- Texto resultado -->
