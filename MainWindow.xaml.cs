@@ -373,10 +373,14 @@ namespace Traductor
             Dispatcher.Invoke(async () =>
             {
                 if (text == _lastIngested) return;
-                var tgt = (cmbTargetLang.SelectedItem as LanguageItem)?.Code ?? "es";
-                // Si el destino es espanol y el texto YA es espanol, no traducir (es tu idioma).
-                // Con destino distinto, traduce CUALQUIER idioma que selecciones (aprender).
-                if (tgt == "es" && !IsOtherLanguage(text)) return;
+
+                // BIDIRECCIONAL (lo que pidió Jorge): si el texto está en OTRO idioma -> traducir
+                // a ESPAÑOL; si el texto ya está en ESPAÑOL -> traducir al idioma SECUNDARIO (el
+                // destino elegido si no es español; si el destino es español, inglés por defecto).
+                // Así una sola selección sirve para leer (extranjero→es) y para responder (es→otro).
+                bool foreign = IsOtherLanguage(text);
+                var chosen = (cmbTargetLang.SelectedItem as LanguageItem)?.Code ?? "es";
+                string realTarget = foreign ? "es" : (chosen != "es" ? chosen : _secondaryLang);
 
                 _lastIngested = text;
                 _lastClipboardText = text;   // evita que el timer del portapapeles lo repita
@@ -384,20 +388,27 @@ namespace Traductor
                 _ingesting = true;           // TextChanged NO auto-traducirá (evita doble traducción/voz)
                 try
                 {
+                    // dirige la traducción sin disparar OnLanguageChanged (evita doble traducción)
+                    _suppressLangChange = true;
+                    CtlSelectLang(cmbTargetLang, realTarget);
+                    _suppressLangChange = false;
+
                     if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
                     txtSource.Text = text;
                     placeholderSource.Visibility = Visibility.Collapsed;
                     txtStatus.Text = Loc.L("captured");
 
-                    await TranslateTextAsync();   // UNA sola traducción (al idioma destino: Español por defecto)
+                    await TranslateTextAsync();   // UNA sola traducción (a español o al idioma secundario)
 
                     // Monitor ON = responde en AUDIO por defecto (habla la traducción, una sola vez).
                     if (!string.IsNullOrWhiteSpace(txtResult.Text))
-                        await SpeakAsync(txtResult.Text, tgt);
+                        await SpeakAsync(txtResult.Text, realTarget);
                 }
-                finally { _ingesting = false; }
+                finally { _ingesting = false; _suppressLangChange = false; }
             });
         }
+        // Idioma al que se traduce el ESPAÑOL cuando el destino elegido es español (por defecto inglés).
+        private string _secondaryLang = "en";
 
         private string GetSelectedTextFromFocusedElement()
         {
