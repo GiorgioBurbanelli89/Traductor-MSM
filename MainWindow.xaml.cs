@@ -654,30 +654,66 @@ namespace Traductor
         {
             try
             {
-                // Simular Ctrl+C para copiar la seleccion actual
+                // Copia la selección actual (Ctrl+C simulado) y la lee del portapapeles.
                 await SimulateCopyAsync();
+                await Task.Delay(120);
+                if (!Clipboard.ContainsText()) return;
+                string text = (Clipboard.GetText() ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(text) || text.Length < 2) return;
 
-                if (Clipboard.ContainsText())
+                // Trae la ventana al frente con el texto.
+                if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                Show(); Activate(); Topmost = true; Topmost = false;
+
+                _ingesting = true;
+                try
                 {
-                    string clipboardText = Clipboard.GetText();
-                    if (!string.IsNullOrWhiteSpace(clipboardText))
+                    txtSource.Text = text;
+                    placeholderSource.Visibility = Visibility.Collapsed;
+
+                    // Detecta el idioma REAL traduciendo primero auto -> español (Google auto-detect).
+                    _suppressLangChange = true;
+                    CtlSelectLang(cmbSourceLang, "auto");
+                    CtlSelectLang(cmbTargetLang, "es");
+                    _suppressLangChange = false;
+                    _lastIngested = text; _lastClipboardText = text;
+                    await TranslateTextAsync();
+
+                    if (IsDetectedSpanish(_lastDetectedName))
                     {
-                        // Obtener posicion del cursor
-                        GetCursorPos(out POINT cursorPos);
-
-                        // Detectar automaticamente a que idioma traducir
-                        string targetLang = DetectTargetLanguage(clipboardText);
-
-                        // Mostrar popup instantaneo con traduccion automatica
-                        ShowTranslationPopup(clipboardText, targetLang, cursorPos.X, cursorPos.Y + 15);
+                        // ESPAÑOL: te deja ELEGIR a qué idioma traducir. Deja el origen en español,
+                        // limpia el resultado y ABRE el selector de idioma destino. Cuando eliges uno
+                        // (Inglés/Alemán/…), se traduce y se pronuncia solo (OnLanguageChanged).
+                        _suppressLangChange = true;
+                        CtlSelectLang(cmbSourceLang, "es");
+                        CtlSelectLang(cmbTargetLang, "es");   // neutro: cualquier idioma que elijas dispara la traducción
+                        _suppressLangChange = false;
+                        txtResult.Text = "";
+                        placeholderResult.Visibility = Visibility.Visible;
+                        txtStatus.Text = "Texto en español — elige arriba a qué idioma traducir (Inglés, Alemán…).";
+                        cmbTargetLang.IsDropDownOpen = true;   // abre el menú de idiomas para que elijas
+                    }
+                    else
+                    {
+                        // OTRO IDIOMA: ya quedó en español; lo lee en voz alta.
+                        if (!string.IsNullOrWhiteSpace(txtResult.Text))
+                            await SpeakAsync(txtResult.Text, "es");
                     }
                 }
+                finally { _ingesting = false; _suppressLangChange = false; }
             }
             catch (Exception ex)
             {
                 txtStatus.Text = $"Error: {ex.Message}";
             }
         }
+
+        // Nombre visible del idioma (para el estado del hotkey).
+        private static string LangDisplay(string code) => code switch
+        {
+            "en" => "Inglés", "de" => "Alemán", "fr" => "Francés", "it" => "Italiano",
+            "pt" => "Portugués", "ru" => "Ruso", "es" => "Español", _ => code
+        };
 
         /// <summary>
         /// Detecta automaticamente a que idioma traducir.
