@@ -373,42 +373,54 @@ namespace Traductor
             Dispatcher.Invoke(async () =>
             {
                 if (text == _lastIngested) return;
-
-                // BIDIRECCIONAL (lo que pidió Jorge): si el texto está en OTRO idioma -> traducir
-                // a ESPAÑOL; si el texto ya está en ESPAÑOL -> traducir al idioma SECUNDARIO (el
-                // destino elegido si no es español; si el destino es español, inglés por defecto).
-                // Así una sola selección sirve para leer (extranjero→es) y para responder (es→otro).
-                bool foreign = IsOtherLanguage(text);
-                var chosen = (cmbTargetLang.SelectedItem as LanguageItem)?.Code ?? "es";
-                string realTarget = foreign ? "es" : (chosen != "es" ? chosen : _secondaryLang);
-
                 _lastIngested = text;
                 _lastClipboardText = text;   // evita que el timer del portapapeles lo repita
 
                 _ingesting = true;           // TextChanged NO auto-traducirá (evita doble traducción/voz)
                 try
                 {
-                    // dirige la traducción sin disparar OnLanguageChanged (evita doble traducción)
-                    _suppressLangChange = true;
-                    CtlSelectLang(cmbTargetLang, realTarget);
-                    _suppressLangChange = false;
-
                     if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
                     txtSource.Text = text;
                     placeholderSource.Visibility = Visibility.Collapsed;
                     txtStatus.Text = Loc.L("captured");
 
-                    await TranslateTextAsync();   // UNA sola traducción (a español o al idioma secundario)
+                    // BIDIRECCIONAL con AUTO-DETECCIÓN del servicio (fiable EN/DE/ES, no heurística):
+                    // Paso 1: traducir auto -> ESPAÑOL. El servicio detecta el idioma real.
+                    _suppressLangChange = true;
+                    CtlSelectLang(cmbSourceLang, "auto");
+                    CtlSelectLang(cmbTargetLang, "es");
+                    _suppressLangChange = false;
+                    await TranslateTextAsync();
+                    string finalTarget = "es";
+
+                    // Paso 2: si el texto YA era español, no hay nada que leer -> traducirlo al
+                    // idioma de ESCRITURA (inglés/alemán, el destino que elegiste manualmente).
+                    if (IsDetectedSpanish(_lastDetectedName) && _writeLang != "es")
+                    {
+                        _suppressLangChange = true;
+                        CtlSelectLang(cmbSourceLang, "es");
+                        CtlSelectLang(cmbTargetLang, _writeLang);
+                        _suppressLangChange = false;
+                        await TranslateTextAsync();
+                        finalTarget = _writeLang;
+                        // deja el origen en auto para la próxima selección
+                        _suppressLangChange = true; CtlSelectLang(cmbSourceLang, "auto"); _suppressLangChange = false;
+                    }
 
                     // Monitor ON = responde en AUDIO por defecto (habla la traducción, una sola vez).
                     if (!string.IsNullOrWhiteSpace(txtResult.Text))
-                        await SpeakAsync(txtResult.Text, realTarget);
+                        await SpeakAsync(txtResult.Text, finalTarget);
                 }
                 finally { _ingesting = false; _suppressLangChange = false; }
             });
         }
-        // Idioma al que se traduce el ESPAÑOL cuando el destino elegido es español (por defecto inglés).
-        private string _secondaryLang = "en";
+        private string _lastDetectedName = "";   // idioma detectado por el servicio en la última traducción
+        private string _writeLang = "en";        // idioma de ESCRITURA (a dónde va el español); lo fija el combo destino
+        private static bool IsDetectedSpanish(string name)
+            => !string.IsNullOrEmpty(name) &&
+               (name.StartsWith("Espa", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("es", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("Spanish", StringComparison.OrdinalIgnoreCase));
 
         private string GetSelectedTextFromFocusedElement()
         {
@@ -730,6 +742,7 @@ namespace Traductor
                 var result = await _translationService.TranslateAsync(sourceText, sourceLang, targetLang);
 
                 txtResult.Text = result.TranslatedText;
+                _lastDetectedName = result.DetectedLanguage ?? "";
 
                 string detectedLang = !string.IsNullOrEmpty(result.DetectedLanguage)
                     ? $" ({Loc.L("detected")}: {result.DetectedLanguage})"
@@ -979,6 +992,13 @@ namespace Traductor
         private async void OnLanguageChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (_suppressLangChange) return;   // no traducir mientras se reconstruyen los combos
+            // El destino elegido MANUALMENTE = idioma de ESCRITURA (a dónde va el español que
+            // seleccionas). Se recuerda para la selección bidireccional (español -> ese idioma).
+            if (sender == cmbTargetLang)
+            {
+                var tc = (cmbTargetLang.SelectedItem as LanguageItem)?.Code;
+                if (!string.IsNullOrEmpty(tc) && tc != "es") _writeLang = tc;
+            }
             // Traducir automaticamente al cambiar idioma si hay texto
             if (chkAutoTranslate.IsChecked == true && !string.IsNullOrWhiteSpace(txtSource.Text))
             {
