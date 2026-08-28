@@ -408,8 +408,8 @@ namespace Traductor
                         _suppressLangChange = true; CtlSelectLang(cmbSourceLang, "auto"); _suppressLangChange = false;
                     }
 
-                    // Monitor ON = responde en AUDIO por defecto (habla la traducción, una sola vez).
-                    if (!string.IsNullOrWhiteSpace(txtResult.Text))
+                    // Pronuncia SOLO si la casilla «🔊 Auto-voz» está marcada (así eliges con/sin voz).
+                    if (chkAutoVoice?.IsChecked == true && !string.IsNullOrWhiteSpace(txtResult.Text))
                         await SpeakAsync(txtResult.Text, finalTarget);
                 }
                 finally { _ingesting = false; _suppressLangChange = false; }
@@ -695,8 +695,8 @@ namespace Traductor
                     }
                     else
                     {
-                        // OTRO IDIOMA: ya quedó en español; lo lee en voz alta.
-                        if (!string.IsNullOrWhiteSpace(txtResult.Text))
+                        // OTRO IDIOMA: ya quedó en español; lo lee SOLO si «🔊 Auto-voz» está marcada.
+                        if (chkAutoVoice?.IsChecked == true && !string.IsNullOrWhiteSpace(txtResult.Text))
                             await SpeakAsync(txtResult.Text, "es");
                     }
                 }
