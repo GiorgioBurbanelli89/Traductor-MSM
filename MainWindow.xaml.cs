@@ -39,6 +39,7 @@ namespace Traductor
 
         // Hotkey registration
         private const int HOTKEY_ID = 9000;
+        private const uint MOD_ALT = 0x0001;
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_SHIFT = 0x0004;
         private const uint VK_T = 0x54;
@@ -616,8 +617,8 @@ namespace Traductor
             _source = HwndSource.FromHwnd(_windowHandle);
             _source?.AddHook(HwndHook);
 
-            // Registrar Ctrl+Shift+T
-            if (!RegisterHotKey(_windowHandle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT, VK_T))
+            // Registrar Ctrl+Alt+T
+            if (!RegisterHotKey(_windowHandle, HOTKEY_ID, MOD_CONTROL | MOD_ALT, VK_T))
             {
                 txtStatus.Text = Loc.L("hotkeyErr");
             }
@@ -931,7 +932,7 @@ namespace Traductor
 
         private void BtnQuickTranslate_Click(object sender, RoutedEventArgs e)
         {
-            // Simula Ctrl+Shift+T - traduce el contenido del portapapeles
+            // Simula Ctrl+Alt+T - traduce el contenido del portapapeles
             if (Clipboard.ContainsText())
             {
                 string clipboardText = Clipboard.GetText();

@@ -1,7 +1,7 @@
 <Window x:Class="Traductor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Traductor - Ctrl+Shift+T para traducir"
+        Title="Traductor - Ctrl+Alt+T para traducir"
         Height="500" Width="700"
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E"
@@ -219,7 +219,7 @@
             <Button x:Name="btnQuickTranslate" Content="📋 Portapapeles"
                     Style="{StaticResource ModernButton}"
                     Click="BtnQuickTranslate_Click" Width="110" Margin="10,0,0,0"
-                    ToolTip="Traduce el texto del portapapeles (Ctrl+Shift+T)"/>
+                    ToolTip="Traduce el texto del portapapeles (Ctrl+Alt+T)"/>
             <Button x:Name="btnTranslate" Content="Traducir"
                     Style="{StaticResource SwapButton}"
                     Click="BtnTranslate_Click" Width="70" Margin="10,0,0,0"/>
@@ -276,7 +276,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="txtStatus" Text="Listo. Presiona Ctrl+Shift+T para traducir texto seleccionado."
+                <TextBlock x:Name="txtStatus" Text="Listo. Presiona Ctrl+Alt+T para traducir texto seleccionado."
                            Foreground="#9E9E9E" FontSize="11" VerticalAlignment="Center"/>
                 <ComboBox Grid.Column="1" x:Name="cmbUiLang" Width="80" Height="26"
                           SelectedIndex="0" SelectionChanged="OnUiLangChanged"

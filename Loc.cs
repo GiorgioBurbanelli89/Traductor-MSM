@@ -13,7 +13,7 @@ namespace Traductor
 
         private static readonly Dictionary<string, (string es, string en)> T = new()
         {
-            ["title"]        = ("Traductor MSM — Ctrl+Shift+T para traducir", "MSM Translator — Ctrl+Shift+T to translate"),
+            ["title"]        = ("Traductor MSM — Ctrl+Alt+T para traducir", "MSM Translator — Ctrl+Alt+T to translate"),
             ["srcLabel"]     = ("Idioma origen", "Source language"),
             ["tgtLabel"]     = ("Idioma destino", "Target language"),
             ["phSource"]     = ("Escribe o pega el texto a traducir...", "Type or paste the text to translate..."),
@@ -31,8 +31,8 @@ namespace Traductor
             ["male"]         = ("👨 Hombre", "👨 Male"),
             ["auto"]         = ("Auto", "Auto"),
             ["autoVoice"]    = ("🔊 Auto-voz", "🔊 Auto-voice"),
-            ["idle"]         = ("Listo. Presiona Ctrl+Shift+T para traducir texto seleccionado.",
-                                "Ready. Press Ctrl+Shift+T to translate selected text."),
+            ["idle"]         = ("Listo. Presiona Ctrl+Alt+T para traducir texto seleccionado.",
+                                "Ready. Press Ctrl+Alt+T to translate selected text."),
             ["translating"]  = ("Traduciendo...", "Translating..."),
             ["translatedOk"] = ("Traducido correctamente.", "Translated successfully."),
             ["detected"]     = ("Detectado", "Detected"),
@@ -48,12 +48,12 @@ namespace Traductor
             ["errTranslate"] = ("Error al traducir: ", "Translation error: "),
             ["emptyText"]    = ("Por favor, ingresa texto para traducir.", "Please enter text to translate."),
             ["sameLangs"]    = ("El idioma origen y destino son iguales.", "Source and target languages are the same."),
-            ["hotkeyErr"]    = ("Error: no se pudo registrar el atajo Ctrl+Shift+T",
-                                "Error: could not register the Ctrl+Shift+T hotkey"),
+            ["hotkeyErr"]    = ("Error: no se pudo registrar el atajo Ctrl+Alt+T",
+                                "Error: could not register the Ctrl+Alt+T hotkey"),
             // tooltips
             ["tipMonitor"]   = ("Actívalo para traducir automáticamente el texto que selecciones en cualquier app",
                                 "Turn on to auto-translate text you select in any app"),
-            ["tipClipboard"] = ("Traduce el texto del portapapeles (Ctrl+Shift+T)", "Translate the clipboard text (Ctrl+Shift+T)"),
+            ["tipClipboard"] = ("Traduce el texto del portapapeles (Ctrl+Alt+T)", "Translate the clipboard text (Ctrl+Alt+T)"),
             ["tipListen"]    = ("Pronuncia la traducción (voz neural, para aprender)", "Speak the translation (neural voice, to learn)"),
             ["tipVoice"]     = ("Voz de la pronunciación (neural, Microsoft Edge)", "Pronunciation voice (neural, Microsoft Edge)"),
             ["tipAuto"]      = ("Traducir automáticamente al escribir", "Auto-translate as you type"),
