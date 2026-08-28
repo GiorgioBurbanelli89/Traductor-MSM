@@ -385,28 +385,17 @@ namespace Traductor
                     placeholderSource.Visibility = Visibility.Collapsed;
                     txtStatus.Text = Loc.L("captured");
 
-                    // BIDIRECCIONAL con AUTO-DETECCIÓN del servicio (fiable EN/DE/ES, no heurística):
-                    // Paso 1: traducir auto -> ESPAÑOL. El servicio detecta el idioma real.
+                    // BIDIRECCIONAL con DETECCIÓN LOCAL fiable (palabras clave EN/DE/ES; no depende de
+                    // Google, que a veces da 429). Extranjero -> ESPAÑOL; español -> idioma de ESCRITURA.
+                    // Se pasa el idioma detectado como ORIGEN para que el motor (MyMemory) acierte el par.
+                    string det = _translationService.DetectLanguage(text);
+                    bool spanish = det == "es";
+                    string finalTarget = spanish ? _writeLang : "es";
                     _suppressLangChange = true;
-                    CtlSelectLang(cmbSourceLang, "auto");
-                    CtlSelectLang(cmbTargetLang, "es");
+                    CtlSelectLang(cmbSourceLang, spanish ? "es" : det);
+                    CtlSelectLang(cmbTargetLang, finalTarget);
                     _suppressLangChange = false;
                     await TranslateTextAsync();
-                    string finalTarget = "es";
-
-                    // Paso 2: si el texto YA era español, no hay nada que leer -> traducirlo al
-                    // idioma de ESCRITURA (inglés/alemán, el destino que elegiste manualmente).
-                    if (IsDetectedSpanish(_lastDetectedName) && _writeLang != "es")
-                    {
-                        _suppressLangChange = true;
-                        CtlSelectLang(cmbSourceLang, "es");
-                        CtlSelectLang(cmbTargetLang, _writeLang);
-                        _suppressLangChange = false;
-                        await TranslateTextAsync();
-                        finalTarget = _writeLang;
-                        // deja el origen en auto para la próxima selección
-                        _suppressLangChange = true; CtlSelectLang(cmbSourceLang, "auto"); _suppressLangChange = false;
-                    }
 
                     // Pronuncia SOLO si la casilla «🔊 Auto-voz» está marcada (así eliges con/sin voz).
                     if (chkAutoVoice?.IsChecked == true && !string.IsNullOrWhiteSpace(txtResult.Text))
@@ -671,15 +660,10 @@ namespace Traductor
                     txtSource.Text = text;
                     placeholderSource.Visibility = Visibility.Collapsed;
 
-                    // Detecta el idioma REAL traduciendo primero auto -> español (Google auto-detect).
-                    _suppressLangChange = true;
-                    CtlSelectLang(cmbSourceLang, "auto");
-                    CtlSelectLang(cmbTargetLang, "es");
-                    _suppressLangChange = false;
-                    _lastIngested = text; _lastClipboardText = text;
-                    await TranslateTextAsync();
+                    // Detección LOCAL fiable (no depende de Google/429).
+                    string det = _translationService.DetectLanguage(text);
 
-                    if (IsDetectedSpanish(_lastDetectedName))
+                    if (det == "es")
                     {
                         // ESPAÑOL: te deja ELEGIR a qué idioma traducir. Deja el origen en español,
                         // limpia el resultado y ABRE el selector de idioma destino. Cuando eliges uno
@@ -695,7 +679,14 @@ namespace Traductor
                     }
                     else
                     {
-                        // OTRO IDIOMA: ya quedó en español; lo lee SOLO si «🔊 Auto-voz» está marcada.
+                        // OTRO IDIOMA -> ESPAÑOL. Pasa el idioma detectado como origen (mejor par).
+                        _suppressLangChange = true;
+                        CtlSelectLang(cmbSourceLang, det);
+                        CtlSelectLang(cmbTargetLang, "es");
+                        _suppressLangChange = false;
+                        _lastIngested = text; _lastClipboardText = text;
+                        await TranslateTextAsync();
+                        // lee SOLO si «🔊 Auto-voz» está marcada.
                         if (chkAutoVoice?.IsChecked == true && !string.IsNullOrWhiteSpace(txtResult.Text))
                             await SpeakAsync(txtResult.Text, "es");
                     }

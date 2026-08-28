@@ -202,8 +202,10 @@ namespace Traductor.Services
             }
         }
 
-        /// <summary>Deteccion simple por caracteres (solo se usa para el respaldo MyMemory).</summary>
-        private string DetectLanguage(string text)
+        /// <summary>Detección de idioma por PALABRAS CLAVE (fiable para de/en/es/fr/it/pt).
+        /// Antes devolvía "en" para todo lo latino -> el alemán se traducía como inglés y no traducía.
+        /// Ahora vota las palabras función más comunes de cada idioma y gana el que más acierte.</summary>
+        public string DetectLanguage(string text)
         {
             foreach (char c in text)
             {
@@ -213,9 +215,28 @@ namespace Traductor.Services
                 if (c >= 0xAC00 && c <= 0xD7AF) return "ko";   // coreano
                 if (c >= 0x0600 && c <= 0x06FF) return "ar";   // arabe
             }
-            if (text.Contains("ñ") || text.Contains("¿") || text.Contains("¡")) return "es";
-            if (text.Contains("ção") || text.Contains("ões")) return "pt";
-            return "en";
+            string t = " " + text.ToLowerInvariant().Replace(".", " ").Replace(",", " ") + " ";
+            // señales fuertes por caracter
+            if (t.Contains("ñ") || t.Contains("¿") || t.Contains("¡")) return "es";
+            if (t.Contains("ß")) return "de";
+            var langs = new (string code, string[] words)[]
+            {
+                ("de", new[]{"der","die","das","und","ist","mit","ich","ein","eine","nicht","sich","sie","für","von","zu","dem","den","auch","wo","im","auf","aus","bei","habe","haben","sind","wird","war","noch","schon","oder","aber","wie","was","über","einen","zum","werden"}),
+                ("en", new[]{"the","and","is","are","of","to","in","that","it","for","with","you","this","on","be","at","have","has","was","not","but","which","from","by","as","or","an","they","will"}),
+                ("es", new[]{"el","la","los","las","de","que","en","un","una","es","son","con","por","para","del","al","se","su","como","pero","más","este","esta","muy","también","hay","donde"}),
+                ("fr", new[]{"le","les","des","une","et","est","dans","pour","que","qui","avec","sur","ne","pas","ce","cette","vous","nous","mais","ou","du","au"}),
+                ("it", new[]{"il","lo","di","che","è","un","una","per","con","non","sono","gli","questo","questa","anche","come","più","della","nel"}),
+                ("pt", new[]{"os","as","de","que","em","um","uma","não","com","por","para","do","da","se","mais","como","mas","também","uma","você"}),
+            };
+            string best = "en"; int bestScore = 0;
+            foreach (var (code, words) in langs)
+            {
+                int s = 0;
+                foreach (var w in words) if (t.Contains(" " + w + " ")) s++;
+                if (s > bestScore) { bestScore = s; best = code; }
+            }
+            if (bestScore == 0 && (t.Contains("ä") || t.Contains("ö") || t.Contains("ü"))) return "de";
+            return best;
         }
 
         private string GetLanguageName(string code)
