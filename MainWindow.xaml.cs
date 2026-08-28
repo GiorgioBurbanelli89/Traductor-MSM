@@ -371,12 +371,15 @@ namespace Traductor
             text = (text ?? "").Trim();
             if (text.Length < 3) return;
 
+            // GUARDIA SÍNCRONO: marca YA el texto (antes de cualquier await). Sin esto, el mouse-hook
+            // y el timer del portapapeles pueden ingerir la MISMA selección casi a la vez -> dos
+            // traducciones y dos voces; la 2ª llama a SpeakAsyncCancelAll y CORTA la 1ª -> no suena nada.
+            if (text == _lastIngested) return;
+            _lastIngested = text;
+            _lastClipboardText = text;   // evita que el timer del portapapeles lo repita
+
             Dispatcher.Invoke(async () =>
             {
-                if (text == _lastIngested) return;
-                _lastIngested = text;
-                _lastClipboardText = text;   // evita que el timer del portapapeles lo repita
-
                 _ingesting = true;           // TextChanged NO auto-traducirá (evita doble traducción/voz)
                 try
                 {

@@ -89,6 +89,8 @@ namespace Traductor
                 System.Windows.Media.Color.FromRgb(85, 85, 85));
             btnLangPT.Background = new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromRgb(85, 85, 85));
+            btnLangDE.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(85, 85, 85));
 
             // Marcar el idioma seleccionado en azul
             var blueColor = new System.Windows.Media.SolidColorBrush(
@@ -107,6 +109,9 @@ namespace Traductor
                     break;
                 case "pt":
                     btnLangPT.Background = blueColor;
+                    break;
+                case "de":
+                    btnLangDE.Background = blueColor;
                     break;
             }
         }
