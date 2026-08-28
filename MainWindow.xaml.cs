@@ -165,8 +165,8 @@ namespace Traductor
                     return System.Text.Json.JsonSerializer.Serialize(new
                     { source = txtSource.Text, result = txtResult.Text });
                 }
-                case "spoken":   // último texto pronunciado (para verificar el audio de la selección)
-                    return System.Text.Json.JsonSerializer.Serialize(new { spoken = _lastSpoken });
+                case "spoken":   // último texto pronunciado + duración real de la voz SAPI (ms)
+                    return System.Text.Json.JsonSerializer.Serialize(new { spoken = _lastSpoken, ms = _lastSpokeMs });
                 case "uilang":   // cambia el idioma de la INTERFAZ (es/en)
                     cmbUiLang.SelectedIndex = doc.RootElement.GetProperty("code").GetString() == "en" ? 1 : 0;
                     return "{\"ok\":true}";
@@ -926,7 +926,12 @@ namespace Traductor
 
         // ⚡ Voz de Windows (SAPI): offline e instantánea. Devuelve TRUE si habló; FALSE si NO
         // hay voz de Windows para ese idioma (entonces el llamador cae a la voz neural).
+        // OJO: SpeakAsync() de System.Speech NO reproduce en este contexto (se queda colgado, no
+        // suena). Speak() SÍNCRONO sí reproduce -> lo corremos en un hilo aparte (Task.Run) para
+        // no congelar la ventana. Un lock evita dos voces a la vez.
         private System.Speech.Synthesis.SpeechSynthesizer _sapi;
+        private readonly object _sapiLock = new object();
+        public long _lastSpokeMs = 0;   // duración de la última voz SAPI (verificación por --ctl)
         private bool SpeakWindows(string text, string lang, bool male)
         {
             try
@@ -945,9 +950,22 @@ namespace Traductor
                                   : System.Speech.Synthesis.VoiceGender.Female;
                 var chosen = System.Linq.Enumerable.FirstOrDefault(voices, v => v.VoiceInfo.Gender == wanted)
                           ?? voices[0];
-                _sapi.SpeakAsyncCancelAll();           // corta lo anterior -> una sola voz
-                _sapi.SelectVoice(chosen.VoiceInfo.Name);
-                _sapi.SpeakAsync(text);
+                try { _sapi.SpeakAsyncCancelAll(); } catch { }   // corta cualquier voz previa
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    lock (_sapiLock)   // una sola voz a la vez (Speak es bloqueante)
+                    {
+                        try
+                        {
+                            var sw = System.Diagnostics.Stopwatch.StartNew();
+                            _sapi.SelectVoice(chosen.VoiceInfo.Name);
+                            _sapi.Speak(text);   // SÍNCRONO -> sí reproduce (SpeakAsync no suena aquí)
+                            sw.Stop();
+                            _lastSpokeMs = sw.ElapsedMilliseconds;
+                        }
+                        catch { }
+                    }
+                });
                 return true;
             }
             catch { return false; }
