@@ -73,6 +73,13 @@ namespace Traductor
         public MainWindow()
         {
             InitializeComponent();
+            // Pegar (Ctrl+V, Shift+Ins, menú) sin nada seleccionado REEMPLAZA el texto viejo:
+            // no hace falta seleccionar y borrar antes. Si hay una parte seleccionada, pega solo ahí.
+            CommandManager.AddPreviewExecutedHandler(txtSource, (s, e) =>
+            {
+                if (e.Command == ApplicationCommands.Paste && txtSource.SelectionLength == 0)
+                    txtSource.SelectAll();
+            });
             _translationService = new TranslationService();
             InitializeLanguages();
             InitializeClipboardMonitor();
@@ -118,6 +125,9 @@ namespace Traductor
                 case "settext":
                     txtSource.Text = doc.RootElement.GetProperty("text").GetString();
                     return "{\"ok\":true}";
+                case "pegar":    // el MISMO comando Pegar que Ctrl+V sobre el cuadro de origen
+                    ApplicationCommands.Paste.Execute(null, txtSource);
+                    return System.Text.Json.JsonSerializer.Serialize(new { texto = txtSource.Text });
                 case "settarget":
                     CtlSelectLang(cmbTargetLang, doc.RootElement.GetProperty("code").GetString());
                     return "{\"ok\":true}";
