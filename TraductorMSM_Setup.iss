@@ -2,7 +2,7 @@
 ; Generado para Inno Setup 6
 
 #define MyAppName "Traductor MSM"
-#define MyAppVersion "1.8.6"
+#define MyAppVersion "1.9.0"
 #define MyAppPublisher "MSM"
 #define MyAppExeName "Traductor MSM.exe"
 #define MyAppAssocName MyAppName + " File"
@@ -50,6 +50,8 @@ Source: "C:\Users\j-b-j\Documents\Traductor\bin\Release\net8.0-windows\*.json"; 
 Source: "C:\Users\j-b-j\Documents\Traductor\bin\Release\net8.0-windows\*.runtimeconfig.json"; DestDir: "{app}"; Flags: ignoreversion
 ; Icono
 Source: "C:\Users\j-b-j\Documents\Traductor\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+; Extension del navegador (menu del clic derecho)
+Source: "C:\Users\j-b-j\Documents\Traductor\ExtensionNavegador\*"; DestDir: "{app}\ExtensionNavegador"; Flags: ignoreversion
 
 [Icons]
 ; Icono en el men� de inicio
@@ -59,6 +61,13 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 ; Icono en inicio r�pido
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon
+
+[Registry]
+; traductormsm:?t=... (enlace que abre la extension del navegador) -> Traductor MSM
+Root: HKCU; Subkey: "Software\Classes\traductormsm"; ValueType: string; ValueName: ""; ValueData: "URL:Traductor MSM"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\traductormsm"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\traductormsm\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\icon.ico"
+Root: HKCU; Subkey: "Software\Classes\traductormsm\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 
 [Run]
 ; Ejecutar la aplicaci�n despu�s de la instalaci�n

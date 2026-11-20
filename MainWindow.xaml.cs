@@ -92,6 +92,46 @@ namespace Traductor
             // Canal de control --ctl (tests desde terminal, como Hekatan LISP/Fortran)
             _ctl = CtlValueAfter(Environment.GetCommandLineArgs(), "--ctl");
             if (_ctl != null) Loaded += (_, _) => StartCtl();
+
+            // Menú del clic derecho del navegador (extensión → traductormsm:?t=...).
+            Loaded += (_, _) =>
+            {
+                var t = App.TextoNavegador(Environment.GetCommandLineArgs());
+                if (t != null) DesdeNavegador(t);
+                EscucharTubo();
+            };
+        }
+
+        /// <summary>Texto del menú del navegador: trae la ventana al frente y lo traduce.</summary>
+        private void DesdeNavegador(string text)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Show();
+                if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                Activate(); Topmost = true; Topmost = false;
+                _lastIngested = "";   // el mismo texto dos veces también se traduce
+                IngestSelection(text);
+            });
+        }
+
+        private void EscucharTubo()
+        {
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        using var s = new System.IO.Pipes.NamedPipeServerStream(App.Tubo, System.IO.Pipes.PipeDirection.In);
+                        await s.WaitForConnectionAsync();
+                        using var r = new System.IO.StreamReader(s);
+                        var t = await r.ReadToEndAsync();
+                        if (!string.IsNullOrWhiteSpace(t)) DesdeNavegador(t);
+                    }
+                    catch { await Task.Delay(500); }
+                }
+            });
         }
 
         // ---------- --ctl: la terminal maneja la ventana viva ----------

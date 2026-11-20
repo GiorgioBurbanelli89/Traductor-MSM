@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Traductor MSM",
+  "version": "1.0",
+  "description": "Clic derecho sobre el texto seleccionado → Traducir con Traductor MSM",
+  "permissions": ["contextMenus", "scripting", "activeTab"],
+  "background": { "service_worker": "background.js" },
+  "icons": { "128": "icon.png" }
+}
