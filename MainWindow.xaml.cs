@@ -53,6 +53,16 @@ namespace Traductor
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
 
+        // Para NO estorbar al copiar (20-nov-2026): no tocar el portapapeles si no cambió, no mandar el Ctrl+C falso
+        // a una terminal ni con una tecla apretada, y no quitar el foco a la app donde se seleccionó.
+        [DllImport("user32.dll")] private static extern uint GetClipboardSequenceNumber();
+        [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
+        [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder s, int n);
+        [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        private uint _clipSeq = 0;
+
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
         {
@@ -186,6 +196,20 @@ namespace Traductor
                         voice1 = ((System.Windows.Controls.ComboBoxItem)cmbVoice.Items[1]).Content?.ToString(),
                         tgtEn = (cmbTargetLang.Items[1] as LanguageItem)?.Name
                     });
+                case "puede":    // ¿mandaría el Ctrl+C falso con la ventana que está delante? (prueba de las guardas)
+                {
+                    IntPtr fg = GetForegroundWindow(); var cls = new System.Text.StringBuilder(256); GetClassName(fg, cls, 256);
+                    GetWindowThreadProcessId(fg, out uint pidF); string pn = ""; try { pn = System.Diagnostics.Process.GetProcessById((int)pidF).ProcessName; } catch { }
+                    return System.Text.Json.JsonSerializer.Serialize(new { puede = PuedeCopiarFalso(), clase = cls.ToString(), proceso = pn });
+                }
+                case "drag":     // el MISMO camino que un arrastre real del ratón (UIA → guardas → Ctrl+C falso → devolver el portapapeles)
+                {
+                    _isMonitoringClipboard = true; _lastIngested = "";
+                    uint s0 = GetClipboardSequenceNumber(); string antes = ""; try { antes = Clipboard.ContainsText() ? Clipboard.GetText() : ""; } catch { }
+                    OnSelectionDrag(0, 0); await Task.Delay(1800);
+                    string despues = ""; try { despues = Clipboard.ContainsText() ? Clipboard.GetText() : ""; } catch { }
+                    return System.Text.Json.JsonSerializer.Serialize(new { portapapelesAntes = antes, portapapelesDespues = despues, igual = antes == despues, secuenciaCambio = GetClipboardSequenceNumber() != s0, capturado = txtSource.Text });
+                }
                 case "quit":
                     Application.Current.Shutdown();
                     return "{\"ok\":true}";
@@ -268,33 +292,48 @@ namespace Traductor
             // Pequeño delay para que la selección se complete
             await Task.Delay(150);
 
-            // Guardar clipboard anterior
-            string oldClipboard = "";
-            try
-            {
-                if (Clipboard.ContainsText())
-                    oldClipboard = Clipboard.GetText();
-            }
-            catch { }
+            // 1) Leer la selección SIN tocar el portapapeles (UI Automation). Si sale, no hace falta el Ctrl+C falso.
+            string uia = GetSelectedTextFromFocusedElement();
+            if (!string.IsNullOrWhiteSpace(uia) && uia.Trim().Length >= 3) { _lastSelectedText = uia; IngestSelection(uia); return; }
 
-            // Simular Ctrl+C para copiar la selección
+            // 2) El Ctrl+C falso SOLO si no estorba: ni con una tecla apretada (el Ctrl falso soltaba el Ctrl del usuario
+            //    y se escribía una «c» sobre la selección), ni en una terminal (Ctrl+C la interrumpe), ni en esta app.
+            if (!PuedeCopiarFalso()) return;
+
+            uint seq0 = GetClipboardSequenceNumber();
+            IDataObject? previo = null;
+            try { previo = Clipboard.GetDataObject(); } catch { }
+            var copia = new DataObject();
+            try { if (previo != null) foreach (var f in previo.GetFormats(false)) { try { var d = previo.GetData(f); if (d != null) copia.SetData(f, d); } catch { } } } catch { }
+
             await KeyboardHelper.SimulateCopyAsync();
             await Task.Delay(100);
+            if (GetClipboardSequenceNumber() == seq0) return;          // no había nada seleccionado: el portapapeles sigue intacto
 
-            // Verificar si hay nuevo texto
-            try
-            {
-                if (Clipboard.ContainsText())
-                {
-                    string newText = Clipboard.GetText();
-                    if (!string.IsNullOrWhiteSpace(newText) && newText != oldClipboard && newText.Length >= 3)
-                    {
-                        // Cualquier idioma -> a la caja principal y traducir al idioma destino
-                        IngestSelection(newText);
-                    }
-                }
-            }
-            catch { }
+            string newText = "";
+            try { if (Clipboard.ContainsText()) newText = Clipboard.GetText(); } catch { }
+
+            // 3) Devolver el portapapeles del usuario tal como estaba (antes quedaba la selección encima de lo que había copiado)
+            try { if (copia.GetFormats().Length > 0) Clipboard.SetDataObject(copia, true); } catch { }
+            _clipSeq = GetClipboardSequenceNumber();
+            _lastClipboardText = newText;
+
+            if (!string.IsNullOrWhiteSpace(newText) && newText.Trim().Length >= 3) IngestSelection(newText);
+        }
+
+        /// <summary>¿Se puede mandar el Ctrl+C falso sin estorbar? No con Ctrl/Shift/Alt/Win apretados, no a una terminal y no a esta app.</summary>
+        private bool PuedeCopiarFalso()
+        {
+            foreach (int vk in new[] { 0x11, 0x10, 0x12, 0x5B, 0x5C, 0x01 })          // Ctrl, Shift, Alt, Win izq/der, botón izquierdo
+                if ((GetAsyncKeyState(vk) & 0x8000) != 0) return false;
+            IntPtr fg = GetForegroundWindow(); if (fg == IntPtr.Zero) return false;
+            GetWindowThreadProcessId(fg, out uint pid);
+            if (pid == (uint)Environment.ProcessId) return false;
+            var cls = new System.Text.StringBuilder(256); GetClassName(fg, cls, 256);
+            string c = cls.ToString();
+            if (c is "ConsoleWindowClass" or "CASCADIA_HOSTING_WINDOW_CLASS" or "mintty" or "PuTTY" or "VirtualConsoleClass") return false;          // terminales: Ctrl+C = interrumpir
+            try { var pn = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName.ToLowerInvariant(); if (pn is "windowsterminal" or "wezterm-gui" or "alacritty") return false; /* las consolas (cmd, PowerShell, conhost) ya caen por la clase ConsoleWindowClass */ } catch { }
+            return true;
         }
 
         private async void OnFloatingButtonClicked()
@@ -333,7 +372,10 @@ namespace Traductor
                     return;
                 }
 
-                // Si no hay seleccion, revisar clipboard
+                // Si no hay seleccion, revisar clipboard: SOLO si cambió (abrirlo cada 300 ms chocaba con el Ctrl+C de otras apps)
+                uint seq = GetClipboardSequenceNumber();
+                if (seq == _clipSeq) return;
+                _clipSeq = seq;
                 if (!Clipboard.ContainsText()) return;
 
                 string currentText = Clipboard.GetText();
@@ -383,7 +425,7 @@ namespace Traductor
                 _ingesting = true;           // TextChanged NO auto-traducirá (evita doble traducción/voz)
                 try
                 {
-                    if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                    if (WindowState == WindowState.Minimized) ShowWindow(new System.Windows.Interop.WindowInteropHelper(this).Handle, 4);          // SW_SHOWNOACTIVATE: se ve sin quitar el foco a la app donde se seleccionó
                     txtSource.Text = text;
                     placeholderSource.Visibility = Visibility.Collapsed;
                     txtStatus.Text = Loc.L("captured");
