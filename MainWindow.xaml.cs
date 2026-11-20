@@ -698,11 +698,26 @@ namespace Traductor
         {
             try
             {
-                // Copia la selección actual (Ctrl+C simulado) y la lee del portapapeles.
-                await SimulateCopyAsync();
-                await Task.Delay(120);
-                if (!Clipboard.ContainsText()) return;
-                string text = (Clipboard.GetText() ?? "").Trim();
+                // 1) Selección por UI Automation (no toca el portapapeles).
+                string text = (GetSelectedTextFromFocusedElement() ?? "").Trim();
+                if (text.Length < 2)
+                {
+                    // 2) Ctrl+C simulado. Antes ESPERA a que sueltes Ctrl/Alt/T: con Alt apretado
+                    //    el navegador recibía Ctrl+Alt+C y no copiaba nada.
+                    for (int i = 0; i < 40; i++)
+                    {
+                        bool algo = false;
+                        foreach (int vk in new[] { 0x11, 0x12, 0x10, 0x54, 0x5B, 0x5C })
+                            if ((GetAsyncKeyState(vk) & 0x8000) != 0) algo = true;
+                        if (!algo) break;
+                        await Task.Delay(25);
+                    }
+                    uint s0 = GetClipboardSequenceNumber();
+                    await SimulateCopyAsync();
+                    for (int i = 0; i < 10 && GetClipboardSequenceNumber() == s0; i++) await Task.Delay(30);
+                    if (!Clipboard.ContainsText()) return;
+                    text = (Clipboard.GetText() ?? "").Trim();
+                }
                 if (string.IsNullOrWhiteSpace(text) || text.Length < 2) return;
 
                 // Trae la ventana al frente con el texto.
